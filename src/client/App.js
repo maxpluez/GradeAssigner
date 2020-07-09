@@ -1,23 +1,94 @@
-import React, { Component } from 'react';
+import React from 'react';
+import axios from 'axios';
+import '@instructure/canvas-theme';
 import './app.css';
-import ReactImage from './react.png';
 
-export default class App extends Component {
-  state = { username: null };
+import { View } from '@instructure/ui-view';
+import { Text } from '@instructure/ui-text';
 
-  componentDidMount() {
-    fetch('/api/getUsername')
-      .then(res => res.json())
-      .then(user => this.setState({ username: user.username }));
-  }
+const App = () => {
+  const [members, setMembers] = React.useState([]);
+  // [chosenMember, chooseMember] = React.useState({ name: '' });
 
-  render() {
-    const { username } = this.state;
-    return (
-      <div>
-        {username ? <h1>{`Hello ${username}`}</h1> : <h1>Loading.. please wait!</h1>}
-        <img src={ReactImage} alt="react" />
-      </div>
-    );
-  }
-}
+  const ltikPromise = new Promise((resolve, reject) => {
+    const searchParams = new URLSearchParams(window.location.search);
+    let potentialLtik = searchParams.get('ltik');
+    if (!potentialLtik) {
+      potentialLtik = sessionStorage.getItem('ltik'); // eslint-disable-line no-undef
+      if (!potentialLtik) reject(new Error('Missing lti key.'));
+    }
+    resolve(potentialLtik);
+  });
+
+  const setLtikPromise = new Promise((resolve, reject) => {
+    ltikPromise.then((res) => {
+      sessionStorage.setItem('ltik', res);
+      resolve(res);
+    }).catch((err) => {
+      reject(err);
+    });
+  });
+
+  const retrieveMembers = () => {
+    setLtikPromise.then((res) => {
+      axios.get(`/api/members?ltik=${res}`).then((list) => {
+        console.log(`res from server: ${list.data}`);
+        setMembers(res.data);
+      }).catch((err) => {
+        console.log('error retrieving from server');
+        console.log(err);
+      });
+    }).catch((err) => {
+      console.log(err);
+    });
+  };
+
+  React.useEffect(retrieveMembers, []);
+
+  return (
+    <View
+      as="div"
+      display="flex"
+      margin="auto"
+      background="brand"
+    >
+      <UserList
+        members={members}
+      />
+      <UserPanel />
+    </View>
+  );
+};
+
+// eslint-disable-next-line react/prop-types
+const UserList = ({ members }) => {
+  console.log(`members inside UserList: ${members}`);
+
+  return (
+    <View
+      as="div"
+      margin="small"
+      padding="small"
+      width="50%"
+    >
+      <Text>User List</Text>
+    </View>
+  );
+};
+
+const UserPanel = () => {
+  console.log('');
+  return (
+    <View
+      as="div"
+      margin="small"
+      padding="small"
+      width="50%"
+      shadow="topmost"
+    >
+      <Text>User Profile</Text>
+    </View>
+  );
+};
+
+export default App;
