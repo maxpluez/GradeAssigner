@@ -1,6 +1,6 @@
 // Requiring LTIJS provider
 const Lti = require('ltijs').Provider;
-const cors = require('cors');
+// const cors = require('cors');
 
 // Creating a provider instance
 const lti = new Lti(
@@ -29,19 +29,15 @@ async function setup() {
     lti.redirect(response, 'http://localhost:5000');
   });
 
-  lti.app.use(cors());
+  // lti.app.use(cors());
 
   // Names and Roles route
-  lti.app.get('/members', async (req, res) => {
+  lti.app.get('/api/members', async (req, res) => {
     try {
       console.log(res.locals.token);
       const result = await lti.NamesAndRoles.getMembers(res.locals.token);
       console.log(result);
-      if (result) {
-        return res.send(result.members);
-      }
-      console.log('No Member found...');
-      return res.status(500).send('No member found...');
+      return res.send(result);
     } catch (err) {
       console.log(err);
       return res.status(500).send(err);

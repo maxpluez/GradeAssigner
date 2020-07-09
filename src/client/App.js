@@ -10,7 +10,7 @@ const App = () => {
   const [members, setMembers] = React.useState([]);
   // [chosenMember, chooseMember] = React.useState({ name: '' });
 
-  const ltikPromise = new Promise((resolve, reject) => {
+  const getLtikPromise = new Promise((resolve, reject) => {
     const searchParams = new URLSearchParams(window.location.search);
     let potentialLtik = searchParams.get('ltik');
     if (!potentialLtik) {
@@ -21,7 +21,7 @@ const App = () => {
   });
 
   const setLtikPromise = new Promise((resolve, reject) => {
-    ltikPromise.then((res) => {
+    getLtikPromise.then((res) => {
       sessionStorage.setItem('ltik', res);
       resolve(res);
     }).catch((err) => {
