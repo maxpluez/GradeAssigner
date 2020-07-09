@@ -1,35 +1,53 @@
+// Requiring path
+const path = require('path');
+// Loading environment variables
+require('dotenv').config();
+
 // Requiring LTIJS provider
 const Lti = require('ltijs').Provider;
-// const cors = require('cors');
 
 // Creating a provider instance
 const lti = new Lti(
-  'SAMPLEKEY',
+  process.env.LTI_KEY,
   // Setting up database configurations
-  { url: 'mongodb://localhost/ltimoodle' }
+  {
+    url: `mongodb://${process.env.DB_HOST}/${process.env.DB_DATABASE}`,
+    connection: { user: process.env.DB_USER, pass: process.env.DB_PASS }
+  },
+  { appUrl: '/', loginUrl: '/login', logger: true }
 );
 
 async function setup() {
   // Deploying provider, connecting to the database and starting express server.
   await lti.deploy();
   // Register Moodle as a platform
-  await lti.registerPlatform({
-    url: 'http://localhost:8000',
+  const plat = await lti.registerPlatform({
+    url: process.env.PLATFORM_URL,
     name: 'Local Moodle',
-    clientId: 'o41NEeEz3FUJzXm',
-    authenticationEndpoint: 'http://localhost:8000/mod/lti/auth.php',
-    accesstokenEndpoint: 'http://localhost:8000/mod/lti/token.php',
+    clientId: process.env.PLATFORM_CLIENTID,
+    authenticationEndpoint: process.env.PLATFORM_ENDPOINT,
+    accesstokenEndpoint: process.env.PLATFORM_TOKEN_ENDPOINT,
     authConfig: {
       method: 'JWK_SET',
-      key: 'http://localhost:8000/mod/lti/certs.php'
+      key: process.env.PLATFORM_KEY_ENDPOINT
     }
   });
 
+  // Get the public key generated for that platform
+  console.log(await plat.platformPublicKey());
+
+  // Set connection callback
   lti.onConnect((connection, request, response) => {
-    lti.redirect(response, 'http://localhost:5000');
+    // Call redirect function
+    lti.redirect(response, '/main');
   });
 
-  // lti.app.use(cors());
+  // Set main endpoint route
+  lti.app.get('/main', (req, res) => {
+    // Id token
+    console.log(res.locals.token);
+    res.send('Connection successful!');
+  });
 
   // Names and Roles route
   lti.app.get('/api/members', async (req, res) => {
