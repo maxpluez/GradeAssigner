@@ -202,6 +202,7 @@ const GradingCenter = ({ showGrades, setLtikPromise, members }) => {
   const retrieveGrades = () => {
     setLtikPromise.then((ltik) => {
       axios.get(`/api/grades?ltik=${ltik}`).then((list) => {
+        console.log(list.data);
         setGrades(list.data);
       });
     });
@@ -222,6 +223,17 @@ const GradingCenter = ({ showGrades, setLtikPromise, members }) => {
             <Table.ColHeader id="score">Score</Table.ColHeader>
           </Table.Row>
         </Table.Head>
+        <Table.Body>
+          {grades.map(grade => (
+            <Table.Row>
+              <Table.RowHeader>
+                {members.filter(member => member.user_id === grade.userId)[0].name}
+              </Table.RowHeader>
+              <Table.Cell>{grade.lineItem}</Table.Cell>
+              <Table.Cell>{`${grade.resultScore}/${grade.resultMaximum}`}</Table.Cell>
+            </Table.Row>
+          ))}
+        </Table.Body>
       </Table>
     );
   }
@@ -243,7 +255,9 @@ const GradingCenter = ({ showGrades, setLtikPromise, members }) => {
       gradingProgress: 'FullyGraded'
     };
     setLtikPromise.then((ltik) => {
-      axios.post(`/api/grades?ltik=${ltik}`, grade).catch((err) => {
+      axios.post(`/api/grades?ltik=${ltik}`, grade).then(() => {
+        retrieveGrades();
+      }).catch((err) => {
         console.log(err);
       });
     }).catch((err) => {
