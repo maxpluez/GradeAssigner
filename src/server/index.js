@@ -1,12 +1,13 @@
-// Requiring LTIJS provider
-const Lti = require('ltijs').Provider;
-// const cors = require('cors');
 require('dotenv').config();
 const path = require('path');
 
+// Requiring LTIJS provider
+const Lti = require('ltijs').Provider;
+
+
 // Creating a provider instance
 let options = { appUrl: '/', loginUrl: '/login', logger: true };
-if (process.env.MODE === 'PRODUCTION') {
+if (process.env.MODE === 'production') {
   options = {
     staticPath: path.join(__dirname, '../../dist'), // Path to static files
     cookies: { secure: false }
@@ -25,10 +26,11 @@ const lti = new Lti(
 async function setup() {
   // Deploying provider, connecting to the database and starting express server.
   await lti.deploy();
-  // Register Moodle as a platform
-  const plat = await lti.registerPlatform({
+
+  // Register platform, if needed.
+  await lti.registerPlatform({
     url: process.env.PLATFORM_URL,
-    name: 'Local Moodle',
+    name: 'Platform',
     clientId: process.env.PLATFORM_CLIENTID,
     authenticationEndpoint: process.env.PLATFORM_ENDPOINT,
     accesstokenEndpoint: process.env.PLATFORM_TOKEN_ENDPOINT,
@@ -38,25 +40,29 @@ async function setup() {
     }
   });
 
-  // Get the public key generated for that platform
+  // Get the public key generated for that platform.
+  const plat = await lti.getPlatform(process.env.PLATFORM_URL);
   console.log(await plat.platformPublicKey());
 
-  // When receiving successful LTI launch redirects to app
+  // When receiving successful LTI launch redirects to app.
   lti.onConnect((token, req, res) => {
-    if (process.env.MODE === 'PRODUCTION') {
+    if (process.env.MODE === 'production') {
       return res.sendFile(path.join(__dirname, '../../dist/index.html'));
     }
     return lti.redirect(res, 'http://localhost:5000');
   });
 
-  // Names and Roles route
+  // Names and Roles route.
   lti.app.get('/api/members', (req, res) => {
     lti.NamesAndRoles.getMembers(res.locals.token)
-      .then(members => res.send(members.members))
+      .then((members) => {
+        console.log(members);
+        res.send(members.members);
+      })
       .catch(err => res.status(400).send(err));
   });
 
-  // Grades routes
+  // Grades routes.
   lti.app.get('/api/grades', (req, res) => {
     lti.Grade.result(res.locals.token).then(grades => res.status(200).send(grades)).catch((err) => {
       console.log(err);
