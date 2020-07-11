@@ -2,8 +2,16 @@
 const Lti = require('ltijs').Provider;
 // const cors = require('cors');
 require('dotenv').config();
+const path = require('path');
 
 // Creating a provider instance
+let options = { appUrl: '/', loginUrl: '/login', logger: true };
+if (process.env.MODE === 'PRODUCTION') {
+  options = {
+    staticPath: path.join(__dirname, '../../dist'), // Path to static files
+    cookies: { secure: false }
+  };
+}
 const lti = new Lti(
   process.env.LTI_KEY,
   // Setting up database configurations
@@ -11,7 +19,7 @@ const lti = new Lti(
     url: `mongodb://${process.env.DB_HOST}/${process.env.DB_DATABASE}`,
     connection: { user: process.env.DB_USER, pass: process.env.DB_PASS }
   },
-  { appUrl: '/', loginUrl: '/login', logger: true }
+  options
 );
 
 async function setup() {
@@ -33,11 +41,13 @@ async function setup() {
   // Get the public key generated for that platform
   console.log(await plat.platformPublicKey());
 
-  lti.onConnect((connection, request, response) => {
-    lti.redirect(response, 'http://localhost:5000');
+  // When receiving successful LTI launch redirects to app
+  lti.onConnect((token, req, res) => {
+    if (process.env.MODE === 'PRODUCTION') {
+      return res.sendFile(path.join(__dirname, '../../dist/index.html'));
+    }
+    return lti.redirect(res, 'http://localhost:5000');
   });
-
-  // lti.app.use(cors());
 
   // Names and Roles route
   lti.app.get('/api/members', (req, res) => {
